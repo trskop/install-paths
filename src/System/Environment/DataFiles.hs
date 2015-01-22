@@ -13,9 +13,15 @@
 module System.Environment.DataFiles
   where
 
-import Data.Function ((.))
+import Control.Exception (IOException, catch)
+import Control.Monad (Monad(return))
+import Data.Function ((.), const)
 import Data.Functor ((<$>))
+import Data.Maybe (Maybe(Just, Nothing))
+import Data.Proxy (Proxy(Proxy))
+import Data.String (String)
 import Data.Tuple (fst)
+import System.Environment (getEnv)
 import System.IO (IO, FilePath)
 
 import System.FilePath ((</>), dropTrailingPathSeparator)
@@ -24,8 +30,11 @@ import System.Environment.Executable (splitExecutablePath)
 
 
 getBinDir :: IO FilePath
-getBinDir = dropTrailingPathSeparator . fst <$> splitExecutablePath
---Environment variable: data_files_bindir
+getBinDir = do
+    maybeDir <- getEnv' "data_files_bindir"
+    case maybeDir of
+        Just dir -> return dir
+        Nothing -> dropTrailingPathSeparator . fst <$> splitExecutablePath
 
 {-
 getLibDir :: IO FilePath
@@ -50,3 +59,14 @@ Environment variable: data_files_libexecdir
 {-
 getDataFileName :: FilePath -> IO FilePath
 -}
+
+getEnv'
+    :: String
+    -> IO (Maybe String)
+getEnv' var = (Just <$> getEnv var)
+    `catch` forget ioException (return Nothing)
+  where
+    ioException = Proxy :: Proxy IOException
+
+    forget :: Proxy b -> a -> b -> a
+    forget Proxy = const
