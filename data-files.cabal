@@ -23,7 +23,9 @@ flag pedantic
 
 library
   hs-source-dirs:       src
-  exposed-modules:      System.Environment.RelativeDataFiles
+  exposed-modules:
+      System.Environment.RelativeDataFiles
+    , System.Environment.RelativeDataFiles.Parameters
 
   -- other-modules:
 
@@ -34,6 +36,7 @@ library
       base >=4.7 && <4.8
     , filepath
 
+    , data-default-class ==0.0.*
     , executable-path ==0.0.*
 
   ghc-options:          -Wall
