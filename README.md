@@ -6,6 +6,12 @@
 [![Build](https://travis-ci.org/trskop/data-files.svg)](https://travis-ci.org/trskop/data-files)
 
 
+## Description
+
+Functions for determining directory layout from executable path.
+
+
+
 [Haskell.org]:
   http://www.haskell.org
   "The Haskell Programming Language"

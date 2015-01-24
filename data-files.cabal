@@ -1,6 +1,7 @@
 name:                   data-files
 version:                0.1.0.0
-synopsis:               TODO
+synopsis:               Functions for determining directory layout from
+                        executable path.
 -- description:
 homepage:               https://github.com/trskop/data-files
 license:                BSD3
