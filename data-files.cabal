@@ -23,7 +23,7 @@ flag pedantic
 
 library
   hs-source-dirs:       src
-  exposed-modules:      System.Environment.DataFiles
+  exposed-modules:      System.Environment.RelativeDataFiles
 
   -- other-modules:
 

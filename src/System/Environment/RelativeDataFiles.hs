@@ -10,7 +10,7 @@
 -- Portability:  NoImplicitPrelude
 --
 -- TODO
-module System.Environment.DataFiles
+module System.Environment.RelativeDataFiles
     (
     -- $intro
       getBaseDir
