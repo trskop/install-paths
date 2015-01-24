@@ -15,6 +15,7 @@
 module System.Environment.RelativeDataFiles.Parameters
     ( Parameters(..)
     , Modify
+    , disableOverrideViaEnvVars
     )
   where
 
@@ -30,6 +31,7 @@ import System.FilePath ((</>), dropFileName, dropTrailingPathSeparator)
 import Data.Default.Class (Default(def))
 
 
+-- | Modfier of @a@ is an endomorphism @a -> a@.
 type Modify a = a -> a
 
 data Parameters = Parameters
@@ -87,3 +89,15 @@ instance Default Parameters where
         }
       where
         mkEnvVar dirId = "data_files_" ++ dirId ++ "dir"
+
+-- | Set all environment variables to \"\" and therefore disable the
+-- possibility to override directory layout using environment variables.
+disableOverrideViaEnvVars :: Modify Parameters
+disableOverrideViaEnvVars params = params
+    { baseDirEnvVar          = ""
+    , binDirEnvVar           = ""
+    , dataDirEnvVar          = ""
+    , libDirEnvVar           = ""
+    , libexecDirEnvVar       = ""
+    , sysconfigDirEnvVar     = ""
+    }
