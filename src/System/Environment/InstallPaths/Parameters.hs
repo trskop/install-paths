@@ -12,7 +12,7 @@
 -- Portability:  DeriveDataTypeable, DeriveGeneric, NoImplicitPrelude
 --
 -- TODO
-module System.Environment.RelativeDataFiles.Parameters
+module System.Environment.InstallPaths.Parameters
     ( Parameters(..)
     , Modify
     , disableOverrideViaEnvVars

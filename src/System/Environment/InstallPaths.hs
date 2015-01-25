@@ -10,11 +10,11 @@
 -- Portability:  NoImplicitPrelude
 --
 -- TODO
-module System.Environment.RelativeDataFiles
+module System.Environment.InstallPaths
     (
     -- * Environment Variables and Directory Layout
     -- $directoryLayout
-      module System.Environment.RelativeDataFiles.Parameters
+      module System.Environment.InstallPaths.Parameters
     , module Data.Default.Class
 
     -- * Get Directories File Path
@@ -46,7 +46,7 @@ import System.FilePath ((</>))
 import Data.Default.Class
 import System.Environment.Executable (splitExecutablePath)
 
-import System.Environment.RelativeDataFiles.Parameters
+import System.Environment.InstallPaths.Parameters
 
 
 -- | Return \"bin\" directory.

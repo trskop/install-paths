@@ -1,9 +1,9 @@
-name:                   data-files
+name:                   install-paths
 version:                0.1.0.0
 synopsis:               Functions for determining directory layout from
                         executable path.
 -- description:
-homepage:               https://github.com/trskop/data-files
+homepage:               https://github.com/trskop/install-paths
 license:                BSD3
 license-file:           LICENSE
 author:                 Peter Trško
@@ -25,8 +25,8 @@ flag pedantic
 library
   hs-source-dirs:       src
   exposed-modules:
-      System.Environment.RelativeDataFiles
-    , System.Environment.RelativeDataFiles.Parameters
+      System.Environment.InstallPaths
+    , System.Environment.InstallPaths.Parameters
 
   -- other-modules:
 
@@ -49,4 +49,4 @@ library
 
 source-repository head
   type:                 git
-  location:             git://github.com/trskop/data-files.git
+  location:             git://github.com/trskop/install-paths.git
