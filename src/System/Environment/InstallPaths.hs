@@ -1,7 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 -- |
 -- Module:       $HEADER$
--- Description:  TODO
+-- Description:  Get installation paths based on executable path.
 -- Copyright:    (c) 2015, Peter Trško
 -- License:      BSD3
 --
@@ -9,7 +9,7 @@
 -- Stability:    experimental
 -- Portability:  NoImplicitPrelude
 --
--- TODO
+-- Get installation paths based on executable path.
 module System.Environment.InstallPaths
     (
     -- * Environment Variables and Directory Layout
@@ -17,22 +17,50 @@ module System.Environment.InstallPaths
       module System.Environment.InstallPaths.Parameters
     , module Data.Default.Class
 
-    -- * Get Directories File Path
-    , getBaseDir
-    , getBinDir
-    , getDataDir
-    , getSysconfigDir
-    , getLibDir
-    , getLibexecDir
+    -- * Naming Conventions
+    --
+    -- | Functions ending with prime (e.g. 'getDir'') takes takes 'Directory'
+    -- argument first and then 'Parameters'. It's the other way around for not
+    -- primed functions.
+    --
+    -- Functions that end with underscore (@_@) don't take 'Parameters'
+    -- argument at all, instead they use @'def' :: 'Parameters'@ value.
 
-    -- * Get Data File Path
+    -- * Get Directories File Path
+    , getDir
+    , getDir'
+    , getDir_
+
+    -- ** Get Specific Directory File Path
+    --
+    -- | Most of the time only one or few of installation directories are
+    -- needed. In such cases these functions provide easier access. Plus they
+    -- are named the same way as those in Cabal's @Path_\*@ module.
+    , getBaseDir
+    , getBaseDir_
+    , getBinDir
+    , getBinDir_
+    , getDataDir
+    , getDataDir_
+    , getLibDir
+    , getLibDir_
+    , getLibexecDir
+    , getLibexecDir_
+    , getSysconfigDir
+    , getSysconfigDir_
+
+    -- * Get File Path
+    , getFileName
+    , getFileName'
+    , getFileName_
     , getDataFileName
+    , getDataFileName_
     )
   where
 
 import Control.Exception (IOException, catch)
 import Control.Monad (Monad(return))
-import Data.Function ((.), ($), const)
+import Data.Function ((.), ($), const, flip)
 import Data.Functor ((<$>))
 import Data.Maybe (Maybe(Just, Nothing))
 import Data.Proxy (Proxy(Proxy))
@@ -48,6 +76,29 @@ import System.Environment.Executable (splitExecutablePath)
 
 import System.Environment.InstallPaths.Parameters
 
+
+-- {{{ Get Directories File Path ----------------------------------------------
+
+-- | Get file path of specified directory based on provided 'Parameters'.
+--
+-- Same as 'getDir'', but with flipped arguments.
+getDir :: Parameters -> Directory -> IO FilePath
+getDir = flip getDir'
+
+-- | Get file path of specified directory based on provided 'Parameters'.
+--
+-- Same as 'getDir', but with flipped arguments.
+getDir' :: Directory -> Parameters -> IO FilePath
+getDir' dir = case dir of
+    BaseDir      -> getBaseDir
+    BinDir       -> getBinDir
+    _            -> stdGetDir dir
+
+-- | @'getDir_' = 'getDir' 'def'@
+getDir_ :: Directory -> IO FilePath
+getDir_ = getDir def
+
+-- {{{ Get Specific Directories File Path -------------------------------------
 
 -- | Return \"bin\" directory.
 --
@@ -80,6 +131,10 @@ getBinDir params = do
     modifyBaseDir       = baseDirTo params BinDir
     modifyExecutableDir = executableDirTo params BinDir
 
+-- | @'getBinDir_' = 'getBinDir' 'def'@
+getBinDir_ :: IO FilePath
+getBinDir_ = getBinDir def
+
 -- | Return base direcotory where application is installed.
 --
 -- Algorithm is as follows:
@@ -98,6 +153,65 @@ getBaseDir params = do
     baseDirVariableName = environmentVariable params BaseDir
     binDirToBaseDir     = executableDirTo params BaseDir
 
+-- | @'getBaseDir_' = 'getBaseDir' 'def'@
+getBaseDir_ :: IO FilePath
+getBaseDir_ = getBaseDir def
+
+getLibDir :: Parameters -> IO FilePath
+getLibDir = stdGetDir LibDir
+
+-- | @'getLibDir_' = 'getLibDir' 'def'@
+getLibDir_ :: IO FilePath
+getLibDir_ = getLibDir def
+
+getDataDir :: Parameters -> IO FilePath
+getDataDir = stdGetDir DataDir
+
+-- | @'getBaseDir_' = 'getBaseDir' 'def'@
+getDataDir_ :: IO FilePath
+getDataDir_ = getDataDir def
+
+getSysconfigDir :: Parameters -> IO FilePath
+getSysconfigDir = stdGetDir SysconfigDir
+
+-- | @'getBaseDir_' = 'getBaseDir' 'def'@
+getSysconfigDir_ :: IO FilePath
+getSysconfigDir_ = getSysconfigDir def
+
+getLibexecDir :: Parameters -> IO FilePath
+getLibexecDir = stdGetDir LibexecDir
+
+-- | @'getLibexecDir_' = 'getLibexecDir' 'def'@
+getLibexecDir_ :: IO FilePath
+getLibexecDir_ = getLibexecDir def
+
+-- }}} Get Specific Directories File Path -------------------------------------
+-- }}} Get Directories File Path ----------------------------------------------
+
+-- {{{ Get File Path ----------------------------------------------------------
+
+getFileName :: Parameters -> Directory -> FilePath -> IO FilePath
+getFileName = flip getFileName'
+
+getFileName' :: Directory -> Parameters -> FilePath -> IO FilePath
+getFileName' dir params relativeFilePath =
+    (</> relativeFilePath) <$> getDir' dir params
+
+-- | @'getFileName_' = 'getFileName' 'def'@
+getFileName_ :: Directory -> FilePath -> IO FilePath
+getFileName_ = getFileName def
+
+getDataFileName :: Parameters -> FilePath -> IO FilePath
+getDataFileName = getFileName' DataDir
+
+-- | @'getDataFileName_' = 'getDataFileName' 'def'@
+getDataFileName_ :: FilePath -> IO FilePath
+getDataFileName_ = getDataFileName def
+
+-- }}} Get File Path ----------------------------------------------------------
+
+-- {{{ Utility functions (not exported) ---------------------------------------
+
 -- | Utility function that is used for implementing a lot of other functions
 -- in this module. It is not exported.
 stdGetDir
@@ -114,21 +228,6 @@ stdGetDir dir params = do
     envVarName     = environmentVariable params dir
     modifyFilePath = baseDirTo params dir
 
-getLibDir :: Parameters -> IO FilePath
-getLibDir = stdGetDir LibDir
-
-getDataDir :: Parameters -> IO FilePath
-getDataDir = stdGetDir DataDir
-
-getSysconfigDir :: Parameters -> IO FilePath
-getSysconfigDir = stdGetDir SysconfigDir
-
-getLibexecDir :: Parameters -> IO FilePath
-getLibexecDir = stdGetDir LibexecDir
-
-getDataFileName :: Parameters -> FilePath -> IO FilePath
-getDataFileName params relativeFilePath = (</> relativeFilePath) <$> getDataDir params
-
 -- | Utility function that returns 'Nothing' if environment variable is not
 -- defined. Otherwise it behaves as 'Environment.getEnv' form
 -- "System.Environment" module.
@@ -144,6 +243,8 @@ getEnv var = (Just <$> Environment.getEnv var)
 
     forget :: Proxy b -> a -> b -> a
     forget Proxy = const
+
+-- }}} Utility functions (not exported) ---------------------------------------
 
 -- $directoryLayout
 --
