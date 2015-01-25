@@ -75,10 +75,10 @@ getBinDir params = do
                 Nothing      ->
                     modifyExecutableDir . fst <$> splitExecutablePath
   where
-    baseDirVariableName = baseDirEnvVar params
-    binDirVariableName  = binDirEnvVar params
-    modifyBaseDir       = baseDirToBinDir params
-    modifyExecutableDir = executableDirToBinDir params
+    baseDirVariableName = environmentVariable params BaseDir
+    binDirVariableName  = environmentVariable params BinDir
+    modifyBaseDir       = baseDirTo params BinDir
+    modifyExecutableDir = executableDirTo params BinDir
 
 -- | Return base direcotory where application is installed.
 --
@@ -95,40 +95,36 @@ getBaseDir params = do
         Just baseDir -> return baseDir
         Nothing      -> binDirToBaseDir <$> getBinDir params
   where
-    baseDirVariableName = baseDirEnvVar params
-    binDirToBaseDir     = executableDirToBaseDir params
+    baseDirVariableName = environmentVariable params BaseDir
+    binDirToBaseDir     = executableDirTo params BaseDir
 
 -- | Utility function that is used for implementing a lot of other functions
 -- in this module. It is not exported.
 stdGetDir
-    :: (Parameters -> String)
-    -- ^ Getter for environment variable name that is check for its value.
-    -> (Parameters -> Modify FilePath)
-    -- ^ Getter for path modification function that takes base directory and
-    -- returns path to one of its subdirectories.
+    :: Directory
     -> Parameters
     -> IO FilePath
     -- ^ Absolute file path.
-stdGetDir getEnvVarName getModifyFilePath params = do
+stdGetDir dir params = do
     maybeDir <- getEnv envVarName
     case maybeDir of
-        Just dir -> return dir
-        Nothing  -> modifyFilePath <$> getBaseDir params
+        Just d  -> return d
+        Nothing -> modifyFilePath <$> getBaseDir params
   where
-    envVarName     = getEnvVarName params
-    modifyFilePath = getModifyFilePath params
+    envVarName     = environmentVariable params dir
+    modifyFilePath = baseDirTo params dir
 
 getLibDir :: Parameters -> IO FilePath
-getLibDir = stdGetDir libDirEnvVar baseDirToLibDir
+getLibDir = stdGetDir LibDir
 
 getDataDir :: Parameters -> IO FilePath
-getDataDir = stdGetDir libDirEnvVar baseDirToLibDir
+getDataDir = stdGetDir DataDir
 
 getSysconfigDir :: Parameters -> IO FilePath
-getSysconfigDir = stdGetDir sysconfigDirEnvVar baseDirToSysconfigDir
+getSysconfigDir = stdGetDir SysconfigDir
 
 getLibexecDir :: Parameters -> IO FilePath
-getLibexecDir = stdGetDir libexecDirEnvVar baseDirToLibexecDir
+getLibexecDir = stdGetDir LibexecDir
 
 getDataFileName :: Parameters -> FilePath -> IO FilePath
 getDataFileName params relativeFilePath = (</> relativeFilePath) <$> getDataDir params

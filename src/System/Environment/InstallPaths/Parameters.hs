@@ -13,41 +13,103 @@
 --
 -- TODO
 module System.Environment.InstallPaths.Parameters
-    ( Parameters(..)
-    , Modify
+    (
+    -- * Symbolic Names For Directories
+    --
+    -- | Enum for relevant directories and some functions for its
+    -- interpretation.
+      Directory(..)
+    , defaultEnvironmentVariable
+    , defaultBaseDirTo
+    , defaultExecutableDirTo
+    , noEnvironmentVariable
+
+    -- * Parameters
+    --
+    -- | Parameters for function sin "System.Environment.RelativeDataFiles"
+    -- module.
+    , Parameters(..)
     , disableOverrideViaEnvVars
+
+    -- * Utilities
+    , Modify
     )
   where
 
-import Data.Function ((.))
+import Prelude (Bounded, Enum)
+
+import Data.Data (Data)
+import Data.Eq (Eq)
+import Data.Function ((.), const, id)
 import Data.List ((++))
+import Data.Ord (Ord)
 import Data.String (String)
 import Data.Typeable (Typeable)
 import GHC.Generics (Generic)
 import System.IO (FilePath)
+import Text.Show (Show)
 
 import System.FilePath ((</>), dropFileName, dropTrailingPathSeparator)
 
 import Data.Default.Class (Default(def))
 
 
+-- {{{ Utilities --------------------------------------------------------------
+
 -- | Modfier of @a@ is an endomorphism @a -> a@.
 type Modify a = a -> a
 
+-- }}} Utilities --------------------------------------------------------------
+
+-- {{{ Symbolic Names For Directories -----------------------------------------
+
+data Directory
+    = BaseDir
+    | BinDir
+    | DataDir
+    | LibDir
+    | LibexecDir
+    | SysconfigDir
+  deriving (Bounded, Data, Enum, Eq, Generic, Ord, Show, Typeable)
+
+defaultEnvironmentVariable :: Directory -> String
+defaultEnvironmentVariable dir = case dir of
+    BaseDir      -> mkEnvVar "base"
+    BinDir       -> mkEnvVar "bin"
+    DataDir      -> mkEnvVar "data"
+    LibDir       -> mkEnvVar "lib"
+    LibexecDir   -> mkEnvVar "libexec"
+    SysconfigDir -> mkEnvVar "sysconfig"
+  where
+    mkEnvVar dirId = "data_files_" ++ dirId ++ "dir"
+
+-- | @'noEnvironmentVariable' = 'const' \"\"@
+noEnvironmentVariable :: Directory -> String
+noEnvironmentVariable = const ""
+
+defaultBaseDirTo :: Directory -> Modify FilePath
+defaultBaseDirTo dir = case dir of
+    BaseDir      -> id
+    BinDir       -> (</> "bin")
+    DataDir      -> (</> "share")
+    LibDir       -> (</> "lib")
+    LibexecDir   -> (</> "libexec")
+    SysconfigDir -> (</> "etc")
+
+defaultExecutableDirTo :: Directory -> Modify FilePath
+defaultExecutableDirTo dir = case dir of
+    BaseDir      -> dropTrailingPathSeparator . dropFileName
+    BinDir       -> dropTrailingPathSeparator
+    _            -> defaultBaseDirTo dir . defaultExecutableDirTo BaseDir
+
+-- }}} Symbolic Names For Directories -----------------------------------------
+
+-- {{{ Parameters -------------------------------------------------------------
+
 data Parameters = Parameters
-    { baseDirEnvVar          :: String
-    , binDirEnvVar           :: String
-    , dataDirEnvVar          :: String
-    , libDirEnvVar           :: String
-    , libexecDirEnvVar       :: String
-    , sysconfigDirEnvVar     :: String
-    , baseDirToBinDir        :: Modify FilePath
-    , baseDirToDataDir       :: Modify FilePath
-    , baseDirToLibDir        :: Modify FilePath
-    , baseDirToLibexecDir    :: Modify FilePath
-    , baseDirToSysconfigDir  :: Modify FilePath
-    , executableDirToBaseDir :: Modify FilePath
-    , executableDirToBinDir  :: Modify FilePath
+    { environmentVariable :: Directory -> String
+    , baseDirTo           :: Directory -> Modify FilePath
+    , executableDirTo     :: Directory -> Modify FilePath
     }
   deriving (Generic, Typeable)
 
@@ -56,48 +118,23 @@ data Parameters = Parameters
 --
 -- @
 -- 'def' = 'Parameters'
---     { 'baseDirEnvVar'          = \"data_files_basedir\"
---     , 'binDirEnvVar'           = \"data_files_bindir\"
---     , 'dataDirEnvVar'          = \"data_files_datadir\"
---     , 'libDirEnvVar'           = \"data_files_libdir\"
---     , 'libexecDirEnvVar'       = \"data_files_libexecdir\"
---     , 'sysconfigDirEnvVar'     = \"data_files_sysconfigdir\"
---     , 'baseDirToBinDir'        = ('</>' \"bin\")
---     , 'baseDirToDataDir'       = ('</>' \"share\")
---     , 'baseDirToLibDir'        = ('</>' \"lib")
---     , 'baseDirToLibexecDir'    = ('</>' \"libexec\")
---     , 'baseDirToSysconfigDir'  = ('</>' \"etc\")
---     , 'executableDirToBaseDir' = 'dropTrailingPathSeparator' . 'dropFileName'
---     , 'executableDirToBinDir'  = 'dropTrailingPathSeparator'
+--     { 'environmentVariable' = 'defaultEnvironmentVariable'
+--     , 'baseDirTo'           = 'defaultBaseDirTo'
+--     , 'executableDirTo'     = 'defaultExecutableDirTo'
 --     }
 -- @
 instance Default Parameters where
     def = Parameters
-        { baseDirEnvVar          = mkEnvVar "base"
-        , binDirEnvVar           = mkEnvVar "bin"
-        , dataDirEnvVar          = mkEnvVar "data"
-        , libDirEnvVar           = mkEnvVar "lib"
-        , libexecDirEnvVar       = mkEnvVar "libexec"
-        , sysconfigDirEnvVar     = mkEnvVar "sysconfig"
-        , baseDirToBinDir        = (</> "bin")
-        , baseDirToDataDir       = (</> "share")
-        , baseDirToLibDir        = (</> "lib")
-        , baseDirToLibexecDir    = (</> "libexec")
-        , baseDirToSysconfigDir  = (</> "etc")
-        , executableDirToBaseDir = dropTrailingPathSeparator . dropFileName
-        , executableDirToBinDir  = dropTrailingPathSeparator
+        { environmentVariable = defaultEnvironmentVariable
+        , baseDirTo           = defaultBaseDirTo
+        , executableDirTo     = defaultExecutableDirTo
         }
-      where
-        mkEnvVar dirId = "data_files_" ++ dirId ++ "dir"
 
--- | Set all environment variables to \"\" and therefore disable the
--- possibility to override directory layout using environment variables.
+-- | Set 'environmentVariable' to 'noEnvironmentVariable' which returns \"\" for
+-- every value of 'Directory' and so disables the possibility to override
+-- directory layout using environment variables.
 disableOverrideViaEnvVars :: Modify Parameters
-disableOverrideViaEnvVars params = params
-    { baseDirEnvVar          = ""
-    , binDirEnvVar           = ""
-    , dataDirEnvVar          = ""
-    , libDirEnvVar           = ""
-    , libexecDirEnvVar       = ""
-    , sysconfigDirEnvVar     = ""
-    }
+disableOverrideViaEnvVars params =
+    params{environmentVariable = noEnvironmentVariable}
+
+-- }}} Parameters -------------------------------------------------------------
