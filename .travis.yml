@@ -9,4 +9,4 @@ script:
   - cabal configure -fpedantic && cabal build
 
   # Following line tests if sdist package is created correctly.
-  - cabal sdist && cabal install dist/data-files-*.tar.gz
+  - cabal sdist && cabal install dist/install-paths-*.tar.gz
